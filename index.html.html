@@ -1,0 +1,561 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>mapboxgl-jupyter viz</title>
+<meta charset='UTF-8' />
+<meta name='viewport'
+      content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script type='text/javascript'
+        src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.js'></script>
+<link type='text/css'
+      href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.0.0/mapbox-gl.css' 
+      rel='stylesheet' />
+
+<style type='text/css'>
+    body { margin:0; padding:0; }
+    .map { position: absolute; top:0; bottom:0; width:100%; }
+    .legend {
+        background-color: white;
+        color: #6e6e6e;
+        border-radius: 3px;
+        bottom: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        padding: 0;
+        position: absolute;
+        right: 10px;
+        z-index: 1;
+        min-width: 100px;
+    }
+   .legend.horizontal {bottom: 10px; text-align: left;}
+
+    /* legend header */
+    .legend .legend-header { border-radius: 3px 3px 0 0; background: white; }
+    .legend .legend-title {
+        padding: 6px 12px 6px 12px;
+        text-shadow: 0 0 2px white;
+        text-transform: capitalize;
+        text-align: center;
+        font-weight: bold !important;
+        font-size: 14px;
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        max-width: 160px;
+    }
+    .legend-title {padding: 6px 12px 6px 12px; text-shadow: 0 0 2px #FFF; text-transform: capitalize; text-align: center; max-width: 160px; font-size: 0.9em; font-weight: bold;}
+    .legend.horizontal .legend-title {text-align: left;}
+
+    /* legend items */
+    .legend-content {margin: 6px 12px 6px 12px; overflow: hidden; padding: 0; float: left; list-style: none; font-size: 0.8em;}
+    .legend.vertical .legend-item {white-space: nowrap;}
+    .legend-value {display: inline-block; line-height: 18px; vertical-align: top;}
+    .legend.horizontal ul.legend-content li.legend-item .legend-value,
+    .legend.horizontal ul.legend-content li.legend-item {display: inline-block; float: left; width: 30px; margin-bottom: 0; text-align: center; min-height: 30px;}
+
+    /* legend key styles */
+    .legend-key {display: inline-block; height: 10px;}
+    .legend-key.default, .legend-key.square {border-radius: 0;}
+    .legend-key.circle {border-radius: 50%;}
+    .legend-key.rounded-square {border-radius: 20%;}
+    .legend.vertical .legend-key {width: 10px; margin-right: 5px; margin-left: 1px;}
+    .legend.horizontal .legend-key {width: 30px; margin-right: 0; margin-top: 1px; float: left;}
+    .legend.horizontal .legend-key.square, .legend.horizontal .legend-key.rounded-square, .legend.horizontal .legend-key.circle {margin-left: 10px; width: 10px;}
+    .legend.horizontal .legend-key.line {margin-left: 5px;}
+    .legend.horizontal .legend-key.line, .legend.vertical .legend-key.line {border-radius: 10%; width: 20px; height: 3px; margin-bottom: 2px;}
+
+    /* gradient bar alignment */
+    .gradient-bar {margin: 6px 12px 6px 12px;}
+    .legend.horizontal .gradient-bar {width: 88%; height: 10px;}
+    .legend.vertical .gradient-bar {width: 10px; min-height: 50px; position: absolute; bottom: 4px;}
+
+    /* contiguous vertical bars (discrete) */
+    .legend.vertical.contig .legend-key {height: 15px; width: 10px;}
+    .legend.vertical.contig li.legend-item {height: 15px;}
+    .legend.vertical.contig {padding-bottom: 6px;}
+
+    /* vertical radius legend */
+    .legend.horizontal.legend-variable-radius ul.legend-content li.legend-item .legend-value,
+    .legend.horizontal.legend-variable-radius ul.legend-content li.legend-item {width: 30px; min-height: 20px;}
+
+    /* scale annotation */
+    .mapboxgl-ctrl.mapboxgl-ctrl-scale { border-color: #6e6e6e; 
+                                         background-color: white; 
+                                         color: #131516; }
+</style>
+
+
+<style>
+    .gradient-bar.bordered, .legend-key.bordered { border: solid grey 0.1px; }
+</style>
+
+
+</head>
+<body>
+
+<div id='map' class='map'></div>
+
+<script type='text/javascript'>
+
+var legendHeader;
+
+function calcColorLegend(myColorStops, title) {
+    // create legend
+    var legend = document.createElement('div'),
+        legendContainer = document.getElementsByClassName('mapboxgl-ctrl-bottom-right')[0];
+
+    if ('circle' === 'contiguous-bar') {
+        legend.className = 'legend vertical contig';
+    }
+    else {
+        legend.className = 'legend vertical';
+    }
+    legend.id = 'legend-0';
+    document.body.appendChild(legend);
+    // add legend header and content elements
+    var mytitle = document.createElement('div'),
+        legendContent = document.createElement('ul');
+    legendHeader = document.createElement('div');
+    mytitle.textContent = title;
+    mytitle.className = 'legend-title'
+    legendHeader.className = 'legend-header'
+    legendContent.className = 'legend-content'
+    legendHeader.appendChild(mytitle);
+    legend.appendChild(legendHeader);
+    legend.appendChild(legendContent);
+    if (false === true) {
+        var gradientText = 'linear-gradient(to right, ',
+            gradient = document.createElement('div');
+        gradient.className = 'gradient-bar';
+        legend.appendChild(gradient);
+    }
+    // calculate a legend entries on a Mapbox GL Style Spec property function stops array
+    for (p = 0; p < myColorStops.length; p++) {
+        if (!!document.getElementById('legend-color-points-value-' + p)) {
+            // update the legend if it already exists
+            document.getElementById('legend-color-points-value-' + p).textContent = myColorStops[p][0];
+            document.getElementById('legend-color-points-id-' + p).style.backgroundColor = myColorStops[p][1];
+        }
+        else {
+            // create the legend if it doesn't yet exist
+            var item = document.createElement('li');
+            item.className = 'legend-item';
+            var key = document.createElement('span');
+            key.className = 'legend-key circle';
+            key.id = 'legend-color-points-id-' + p;
+            key.style.backgroundColor = myColorStops[p][1];
+            var value = document.createElement('span');
+            value.className = 'legend-value';
+            value.id = 'legend-color-points-value-' + p;
+            item.appendChild(key);
+            item.appendChild(value);
+            legendContent.appendChild(item);
+            
+            data = document.getElementById('legend-color-points-value-' + p)
+            // round number values in legend if precision defined
+            if ((typeof(myColorStops[p][0]) == 'number') && (typeof(null) == 'number')) {
+                data.textContent = myColorStops[p][0].toFixed(null);
+            }
+            else {
+                data.textContent = myColorStops[p][0];
+            }
+            // add color stop to gradient list
+            if (false === true) {
+                if (p < myColorStops.length - 1) {
+                    gradientText = gradientText + myColorStops[p][1] + ', ';
+                }
+                else {
+                    gradientText = gradientText + myColorStops[p][1] + ')';
+                }
+                if ('vertical' === 'vertical') {
+                    gradientText = gradientText.replace('to right', 'to bottom');
+                }
+            }
+        }
+    }
+    if (false === true) {
+        // convert to gradient scale appearance
+        gradient.style.background = gradientText;
+        // hide legend keys generated above
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            keys[i].style.visibility = 'hidden';
+        }
+        if ('vertical' === 'vertical') {
+            gradient.style.height = (legendContent.offsetHeight - 6) + 'px';
+        }
+    }
+    // add class for styling bordered legend keys
+    if (true) {
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            if (keys[i]) {
+                keys[i].classList.add('bordered');
+            }
+        }
+        var gradientBars = document.getElementsByClassName('gradient-bar');
+        for (var i=0; i < keys.length; i++) {
+            if (gradientBars[i]) {
+                gradientBars[i].classList.add('bordered');
+            }
+        }
+    }
+    // update right-margin for compact Mapbox attribution based on calculated legend width
+    updateAttribMargin(legend);
+    updateLegendMargin(legend);
+}
+
+
+function calcRadiusLegend(myRadiusStops, title, color) {
+
+    // maximum legend item height
+    var maxLegendItemHeight = 2 * myRadiusStops[myRadiusStops.length - 1][1];
+
+    // create legend
+    var legend = document.createElement('div');
+    legend.className = 'legend vertical legend-variable-radius';
+
+    legend.id = 'legend-1';
+    document.body.appendChild(legend);
+
+    // add legend header and content elements
+    var mytitle = document.createElement('div'),
+        legendContent = document.createElement('ul');
+    legendHeader = document.createElement('div');
+    mytitle.textContent = title;
+    mytitle.className = 'legend-title'
+    legendHeader.className = 'legend-header'
+    legendContent.className = 'legend-content'
+    legendHeader.appendChild(mytitle);
+    legend.appendChild(legendHeader);
+    legend.appendChild(legendContent);
+
+    // calculate a legend entries on a Mapbox GL Style Spec property function stops array
+    for (p = 0; p < myRadiusStops.length; p++) {
+        if (!!document.getElementById('legend-radius-points-value-' + p)) {
+            //update the legend if it already exists
+            document.getElementById('legend-radius-points-value-' + p).textContent = myRadiusStops[p][0];
+            document.getElementById('legend-radius-points-id-' + p).style.backgroundColor = color;
+        }
+        else {
+            // create the legend if it doesn't yet exist
+            var item = document.createElement('li');
+            item.className = 'legend-item';
+            item.height = '' + maxLegendItemHeight + 'px';
+
+            var key = document.createElement('span');
+            key.className = 'legend-key circle';
+            key.id = 'legend-radius-points-id-' + p;
+            key.style.backgroundColor = color;   
+
+            key.style.width = '' + myRadiusStops[p][1] * 2 + 'px';
+            key.style.height = '' + myRadiusStops[p][1] * 2 + 'px';
+
+            keyVerticalMargin = (maxLegendItemHeight - myRadiusStops[p][1] * 2) * 0.5;
+            key.style.marginTop = '' + keyVerticalMargin + 'px';
+            key.style.marginBottom = '' + keyVerticalMargin + 'px';
+
+            var value = document.createElement('span');
+            value.className = 'legend-value';
+            value.id = 'legend-radius-points-value-' + p;
+
+            item.appendChild(key);
+            item.appendChild(value);
+            legendContent.appendChild(item);
+            
+            data = document.getElementById('legend-radius-points-value-' + p)
+
+            // round number values in legend if precision defined
+            if ((typeof(myRadiusStops[p][0]) == 'number') && (typeof(null) == 'number')) {
+                data.textContent = myRadiusStops[p][0].toFixed(null);
+            }
+            else {
+                data.textContent = myRadiusStops[p][0];
+            }
+        }
+    }
+
+    // add class for styling bordered legend keys
+    if (true) {
+        var keys = document.getElementsByClassName('legend-key');
+        for (var i=0; i < keys.length; i++) {
+            if (keys[i]) {
+                keys[i].classList.add('bordered');
+            }
+        }
+    }
+
+    // update right-margin for compact Mapbox attribution based on calculated legend width
+    updateAttribMargin(legend);
+    updateLegendMargin(legend);
+
+}
+
+
+function updateAttribMargin(legend) {
+
+    // default margin is based on calculated legend width
+    var attribMargin = legend.offsetWidth + 15;
+    
+    // if horizontal legend layout (multiple legends are stacked vertically)
+    if ('vertical' === 'horizontal') {
+        document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight = (attribMargin).toString() + 'px';
+    }
+    // vertical legend layout means multiple legends are side-by-side
+    else if ('vertical' === 'vertical') {
+        var currentMargin = Number(document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight.replace('px', ''));
+        document.getElementsByClassName('mapboxgl-ctrl-attrib')[0].style.marginRight = (attribMargin + currentMargin).toString() + 'px';
+    }
+}
+
+
+function updateLegendMargin(legend) {
+
+    var verticalLegends = document.getElementsByClassName('legend vertical'),
+        horizontalLegends = document.getElementsByClassName('legend horizontal');
+
+    if (verticalLegends.length > 1) {
+        for (i = 1; i < verticalLegends.length; i++) {
+            verticalLegends[i].style.marginRight = (legend.offsetWidth - 5).toString() + 'px';
+            var legend = verticalLegends[i];
+        }
+    }
+    else if (horizontalLegends.length > 1) {
+        for (i = 1; i < horizontalLegends.length; i++) {
+            horizontalLegends[i].style.marginBottom = (legend.offsetHeight + 15).toString() + 'px';
+            var legend = horizontalLegends[i];
+        }
+    }
+}
+
+
+function generateInterpolateExpression(propertyValue, stops) {
+    var expression;
+    if (propertyValue == 'zoom') {
+        expression = ['interpolate', ['exponential', 1.2], ['zoom']]
+    }
+    else if (propertyValue == 'heatmap-density') {
+        expression = ['interpolate', ['linear'], ['heatmap-density']]
+    }
+    else {
+        expression = ['interpolate', ['linear'], ['get', propertyValue]]
+    }
+
+    for (var i=0; i<stops.length; i++) {
+        expression.push(stops[i][0], stops[i][1])
+    }
+    return expression
+}
+
+
+function generateMatchExpression(propertyValue, stops, defaultValue) {
+    var expression;
+    expression = ['match', ['get', propertyValue]]
+    for (var i=0; i<stops.length; i++) {
+        expression.push(stops[i][0], stops[i][1])
+    }
+    expression.push(defaultValue)
+    
+    return expression
+}
+
+
+function generatePropertyExpression(expressionType, propertyValue, stops, defaultValue) {
+    var expression;
+    if (expressionType == 'match') {
+        expression = generateMatchExpression(propertyValue, stops, defaultValue)
+    }
+    else if (propertyValue == 'identity') {
+        expression = ['get', propertyValue]
+    }
+    else {
+        expression = generateInterpolateExpression(propertyValue, stops)
+    }
+
+    return expression
+}
+
+</script>
+
+<!-- main map creation code, extended by mapboxgl/templates/circle.html -->
+<script type="text/javascript">
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYmFuYWRvIiwiYSI6ImNrbDV6OXVxNDAya3MydnF1NzNvOWY3ZWYifQ.qQwNYb9iAgc9UsOoOcP4Bg';
+
+    var transformRequest = function(url, resourceType) {
+        const isMapboxRequest = url.slice(8, 22) === 'api.mapbox.com' ||
+          url.slice(10, 26) === 'tiles.mapbox.com';
+      
+        return {
+          url: isMapboxRequest ? url.replace('?', '?pluginName=PythonMapboxgl&') : url
+        }
+    };
+
+    var map = new mapboxgl.Map({
+        container: 'map',
+        attributionControl: false,
+        style: 'mapbox://styles/mapbox/light-v10?optimize=true',
+        center: [126.52576, 33.375956],
+        zoom: 10,
+        pitch: 0,
+        bearing: 0,
+        scrollZoom: true,
+        touchZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        preserveDrawingBuffer: false,
+        transformRequest: transformRequest
+    });
+
+    
+    
+        map.addControl(new mapboxgl.AttributionControl({ compact: true }));
+
+    
+
+    
+
+        map.addControl(new mapboxgl.NavigationControl());
+
+    
+
+    
+
+    
+        
+    
+        
+
+
+    
+        
+        
+
+    
+
+    
+
+    map.on('style.load', function() {
+        
+        
+
+        map.addSource("data", {
+            "type": "geojson",
+            "data": {"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49399, 33.5032]}, "properties": {"업체명": "㈜레드캡", "소재지도로명주소": "제주특별자치도 제주시 다호길 130", "자동차총보유대수": 620, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-803-0391"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48653, 33.50269]}, "properties": {"업체명": "㈜우리렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호북길 111", "자동차총보유대수": 134, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-9797"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.45581, 33.49334]}, "properties": {"업체명": "㈜공항렌트카", "소재지도로명주소": "제주특별자치도 제주시 오광로 24", "자동차총보유대수": 174, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-4801"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50263, 33.51275]}, "properties": {"업체명": "㈜레츠고렌트카", "소재지도로명주소": "제주특별자치도 제주시 용해로 50", "자동차총보유대수": 194, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-6566"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48624, 33.50243]}, "properties": {"업체명": "㈜퍼스트렌트카", "소재지도로명주소": "제주특별자치도 제주시 신성마을길 112", "자동차총보유대수": 190, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-0234"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48273, 33.49631]}, "properties": {"업체명": "㈜통일렌트카", "소재지도로명주소": "제주특별자치도 제주시 제성1길 30", "자동차총보유대수": 237, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-4500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48699, 33.50325]}, "properties": {"업체명": "㈜더쎄븐렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호북길 105", "자동차총보유대수": 137, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-763-0007"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49532, 33.50371]}, "properties": {"업체명": "㈜금강렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호동길 51", "자동차총보유대수": 157, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-2900"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47788, 33.50007]}, "properties": {"업체명": "㈜메이저렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 117", "자동차총보유대수": 188, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-743-1000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48002, 33.49977]}, "properties": {"업체명": "㈜갤럭시렌터카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 128", "자동차총보유대수": 232, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-1116"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48002, 33.49977]}, "properties": {"업체명": "㈜제주유명렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 128", "자동차총보유대수": 268, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-5100"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47197, 33.49714]}, "properties": {"업체명": "조아렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 오일장서길 63", "자동차총보유대수": 395, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-727-2000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48224, 33.50312]}, "properties": {"업체명": "㈜에이스렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호북길 150", "자동차총보유대수": 138, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-722-7373"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48002, 33.49977]}, "properties": {"업체명": "㈜오라렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 128", "자동차총보유대수": 233, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-0700"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47883, 33.49842]}, "properties": {"업체명": "(유)제주삼성렌트카", "소재지도로명주소": "제주특별자치도 제주시 제성1길 75", "자동차총보유대수": 176, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-7070"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47788, 33.50007]}, "properties": {"업체명": "㈜예스렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 117", "자동차총보유대수": 332, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-8080"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49391, 33.5027]}, "properties": {"업체명": "㈜제주한라렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호길 126", "자동차총보유대수": 130, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-9393"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50553, 33.48847]}, "properties": {"업체명": "㈜제주자연렌트카", "소재지도로명주소": "제주특별자치도 제주시 연미길 53", "자동차총보유대수": 192, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-0003"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49299, 33.50288]}, "properties": {"업체명": "㈜타조렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호7길 28", "자동차총보유대수": 142, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-7730"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48002, 33.49977]}, "properties": {"업체명": "(주)제주카카오렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 128", "자동차총보유대수": 307, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-1116"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48624, 33.50243]}, "properties": {"업체명": "㈜하이제주렌트카", "소재지도로명주소": "제주특별자치도 제주시 신성마을길 112", "자동차총보유대수": 195, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-794-2222"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49602, 33.51778]}, "properties": {"업체명": "㈜제주명품렌트카", "소재지도로명주소": "제주특별자치도 제주시 어영길 30", "자동차총보유대수": 155, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-0087"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47701, 33.49845]}, "properties": {"업체명": "한불모터스㈜", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 100", "자동차총보유대수": 225, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-2008"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47883, 33.49842]}, "properties": {"업체명": "㈜씨유렌트카", "소재지도로명주소": "제주특별자치도 제주시 제성1길 75", "자동차총보유대수": 157, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-7900"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.4984, 33.50489]}, "properties": {"업체명": "㈜제주스타렌탈", "소재지도로명주소": "제주특별자치도 제주시 용문로 20", "자동차총보유대수": 184, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-759-3372"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49821, 33.49843]}, "properties": {"업체명": "㈜제주제일렌터카", "소재지도로명주소": "제주특별자치도 제주시 월성로4길 78", "자동차총보유대수": 170, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-747-5670"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.45651, 33.49576]}, "properties": {"업체명": "㈜해피네트웍스", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7581", "자동차총보유대수": 414, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-7935"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49845, 33.49935]}, "properties": {"업체명": "퍼시픽렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 월성로4길 74-12", "자동차총보유대수": 393, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-747-1541"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50216, 33.51182]}, "properties": {"업체명": "㈜매일렌트카", "소재지도로명주소": "제주특별자치도 제주시 용해로 58-15", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-1472"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49295, 33.49637]}, "properties": {"업체명": "㈜비비카", "소재지도로명주소": "제주특별자치도 제주시 도령로 171-1", "자동차총보유대수": 115, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-747-1200"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.4954, 33.51815]}, "properties": {"업체명": "㈜제주유레카", "소재지도로명주소": "제주특별자치도 제주시 어영길 20", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-901-8008"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47197, 33.49714]}, "properties": {"업체명": "㈜스마일렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장서길 63", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-727-2000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47126, 33.49794]}, "properties": {"업체명": "㈜녹원렌터카", "소재지도로명주소": "제주특별자치도 제주시 오일장서길 75", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-747-3339"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48652, 33.49409]}, "properties": {"업체명": "㈜제주보고타렌트카", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7861", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-8553"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48307, 33.4961]}, "properties": {"업체명": "㈜플러스제주렌트카", "소재지도로명주소": "제주특별자치도 제주시 제성1길 28-1", "자동차총보유대수": 239, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-8080"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50773, 33.49332]}, "properties": {"업체명": "레인보우모빌리티㈜", "소재지도로명주소": "제주특별자치도 제주시 연삼로 145", "자동차총보유대수": 140, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-8853"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.4954, 33.51815]}, "properties": {"업체명": "㈜디알", "소재지도로명주소": "제주특별자치도 제주시 어영길 20", "자동차총보유대수": 150, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-2657"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.52512, 33.50466]}, "properties": {"업체명": "㈜제주이브이전기렌트카", "소재지도로명주소": "제주특별자치도 제주시 전농로 113", "자동차총보유대수": 60, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-5911"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.45522, 33.4933]}, "properties": {"업체명": "㈜제이공항렌트카", "소재지도로명주소": "제주특별자치도 제주시 덕지4길 37", "자동차총보유대수": 60, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-2117"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48653, 33.50269]}, "properties": {"업체명": "㈜제이테크인", "소재지도로명주소": "제주특별자치도 제주시 다호북길 111", "자동차총보유대수": 60, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-9400"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50553, 33.48847]}, "properties": {"업체명": "토탈렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 연미길 53", "자동차총보유대수": 112, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-2900"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50364, 33.5101]}, "properties": {"업체명": "㈜하이렌터카", "소재지도로명주소": "제주특별자치도 제주시 용화로 1", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-1101"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47197, 33.49714]}, "properties": {"업체명": "㈜국제렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장서길 63", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-727-2000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.46778, 33.4933]}, "properties": {"업체명": "㈜신동아렌트카", "소재지도로명주소": "제주특별자치도 제주시 억삼길 10", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-901-1100"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.4974, 33.50435]}, "properties": {"업체명": "㈜에스티홀딩스", "소재지도로명주소": "제주특별자치도 제주시 공항로1길 9", "자동차총보유대수": 271, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-723-3348"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49679, 33.50482]}, "properties": {"업체명": "㈜일출렌터카", "소재지도로명주소": "제주특별자치도 제주시 공항로 5", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-805-8780"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48307, 33.4961]}, "properties": {"업체명": "㈜소풍렌트카", "소재지도로명주소": "제주특별자치도 제주시 제성1길 28-1", "자동차총보유대수": 202, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-3500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50148, 33.50895]}, "properties": {"업체명": "롯데렌탈㈜", "소재지도로명주소": "제주특별자치도 제주시 용해로 92", "자동차총보유대수": 2395, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-751-8000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50091, 33.50003]}, "properties": {"업체명": "㈜차세대", "소재지도로명주소": "제주특별자치도 제주시 명신1길 19", "자동차총보유대수": 166, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-9030"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50193, 33.50344]}, "properties": {"업체명": "에스케이렌터카㈜(SK)", "소재지도로명주소": "제주특별자치도 제주시 용문로 62", "자동차총보유대수": 2947, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-726-6461"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49722, 33.49322]}, "properties": {"업체명": "㈜경동", "소재지도로명주소": "제주특별자치도 제주시 신대로 45", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-7475"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50794, 33.49975]}, "properties": {"업체명": "㈜뉴제주콜렌트카", "소재지도로명주소": "제주특별자치도 제주시 서광로 110", "자동차총보유대수": 119, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-7100"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49738, 33.51796]}, "properties": {"업체명": "㈜제주다움렌터카", "소재지도로명주소": "제주특별자치도 제주시 어영길 42", "자동차총보유대수": 435, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-0404"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47788, 33.50007]}, "properties": {"업체명": "㈜로얄렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 117", "자동차총보유대수": 188, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-0002"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50137, 33.50409]}, "properties": {"업체명": "㈜블루렌트카", "소재지도로명주소": "제주특별자치도 제주시 용문로 48", "자동차총보유대수": 486, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-713-5600"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50463, 33.50903]}, "properties": {"업체명": "㈜로보트렌트카", "소재지도로명주소": "제주특별자치도 제주시 용화로4길 10", "자동차총보유대수": 101, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-0428"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48624, 33.50243]}, "properties": {"업체명": "㈜베스트", "소재지도로명주소": "제주특별자치도 제주시 신성마을길 112", "자동차총보유대수": 136, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-8801"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50666, 33.49034]}, "properties": {"업체명": "㈜제주알프스렌트카", "소재지도로명주소": "제주특별자치도 제주시 연미길 35", "자동차총보유대수": 136, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-0899"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47788, 33.50007]}, "properties": {"업체명": "㈜제주파워렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 117", "자동차총보유대수": 119, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-748-8787"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.45522, 33.4933]}, "properties": {"업체명": "㈜제주공항전기차", "소재지도로명주소": "제주특별자치도 제주시 덕지4길 37", "자동차총보유대수": 272, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-8877"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.94363, 33.5109]}, "properties": {"업체명": "㈜우도전기렌트카", "소재지도로명주소": "제주특별자치도 제주시 우도면 우도해안길 372", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-783-3355"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49295, 33.49637]}, "properties": {"업체명": "㈜제주아이렌트카", "소재지도로명주소": "제주특별자치도 제주시 도령로 171-1", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-748-7799"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50137, 33.50409]}, "properties": {"업체명": "㈜라인렌트카", "소재지도로명주소": "제주특별자치도 제주시 용문로 48", "자동차총보유대수": 218, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-713-5600"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.5681, 33.51559]}, "properties": {"업체명": "자보렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 선반로 93", "자동차총보유대수": 125, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-5657"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50248, 33.51176]}, "properties": {"업체명": "㈜제주원렌트카", "소재지도로명주소": "제주특별자치도 제주시 용해로 58-7", "자동차총보유대수": 187, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-1101"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49295, 33.49637]}, "properties": {"업체명": "㈜제주엔젤렌트카", "소재지도로명주소": "제주특별자치도 제주시 도령로 171-1", "자동차총보유대수": 284, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-1401"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.4909, 33.51564]}, "properties": {"업체명": "㈜오렌지렌트카", "소재지도로명주소": "제주특별자치도 제주시 서해안로 442-53", "자동차총보유대수": 186, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-0091"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48653, 33.50269]}, "properties": {"업체명": "㈜로그인렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호북길 111", "자동차총보유대수": 424, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-9400"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48653, 33.50269]}, "properties": {"업체명": "㈜씨카", "소재지도로명주소": "제주특별자치도 제주시 다호북길 111", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-9400"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47788, 33.50007]}, "properties": {"업체명": "㈜제주에코렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 117", "자동차총보유대수": 271, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-5678"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47883, 33.49842]}, "properties": {"업체명": "㈜자유렌터카", "소재지도로명주소": "제주특별자치도 제주시 제성1길 75", "자동차총보유대수": 159, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-7901"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50651, 33.50003]}, "properties": {"업체명": "㈜수렌트카", "소재지도로명주소": "제주특별자치도 제주시 서광로 94", "자동차총보유대수": 125, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-7100"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49295, 33.49637]}, "properties": {"업체명": "(주)제주카카", "소재지도로명주소": "제주특별자치도 제주시 도령로 171-1", "자동차총보유대수": 271, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "1566-0880"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.5034, 33.51554]}, "properties": {"업체명": "㈜땡큐제주렌트카", "소재지도로명주소": "제주특별자치도 제주시 서해안로 620-13", "자동차총보유대수": 310, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-8300"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.38858, 33.26498]}, "properties": {"업체명": "에스케이렌터카(주) 서귀포 영업소", "소재지도로명주소": "제주특별자치도 서귀포시 일주서로 1166", "자동차총보유대수": 124, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-6240-0572"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50193, 33.50344]}, "properties": {"업체명": "에스케이렌터카(주) 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 용문로 62", "자동차총보유대수": 2823, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-6240-0572"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49563, 33.48999]}, "properties": {"업체명": "현대캐피탈(주) 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 삼무로 83", "자동차총보유대수": 94612, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-2167-7616"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48369, 33.48169]}, "properties": {"업체명": "신한카드(주) 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 연북로 22", "자동차총보유대수": 4335, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-6950-7798"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50559, 33.49017]}, "properties": {"업체명": "(주)쏘카", "소재지도로명주소": "제주특별자치도 제주시 연미길 42, (오라삼동)", "자동차총보유대수": 75, "평일운영시작시각": "09:00", "평일운영종료시각": "18:00", "전화번호": "1661-3315"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50558, 33.49017]}, "properties": {"업체명": "㈜에스카", "소재지도로명주소": "제주특별자치도 제주시 연미길 42", "자동차총보유대수": 227, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "070-4352-5515"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50519, 33.50344]}, "properties": {"업체명": "㈜인터파크렌터카", "소재지도로명주소": "제주특별자치도 제주시 용문로 88", "자동차총보유대수": 212, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-743-1515"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50207, 33.51496]}, "properties": {"업체명": "㈜아리랑", "소재지도로명주소": "제주특별자치도 제주시 용마서길 34", "자동차총보유대수": 513, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-749-2139"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50579, 33.48979]}, "properties": {"업체명": "㈜제주아산렌트카", "소재지도로명주소": "제주특별자치도 제주시 연미길 44", "자동차총보유대수": 173, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-743-9991"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50553, 33.48847]}, "properties": {"업체명": "한국렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 연미길 53", "자동차총보유대수": 238, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-748-5005"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49679, 33.50482]}, "properties": {"업체명": "㈜탐라렌트카", "소재지도로명주소": "제주특별자치도 제주시 공항로 5", "자동차총보유대수": 498, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-3300"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.46261, 33.48258]}, "properties": {"업체명": "㈜써니빌렌트카", "소재지도로명주소": "제주특별자치도 제주시 오광로 156", "자동차총보유대수": 121, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-748-1600"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50308, 33.51067]}, "properties": {"업체명": "㈜용두암렌트카", "소재지도로명주소": "제주특별자치도 제주시 용해로 74", "자동차총보유대수": 241, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-0388"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47414, 33.49188]}, "properties": {"업체명": "㈜장수렌트카", "소재지도로명주소": "제주특별자치도 제주시 월광로 154", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-8400"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.4977, 33.49853]}, "properties": {"업체명": "㈜가자제주렌트카", "소재지도로명주소": "제주특별자치도 제주시 월성로4길 76-2", "자동차총보유대수": 138, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-2002"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.5075, 33.49199]}, "properties": {"업체명": "오름렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 연미길 12", "자동차총보유대수": 225, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-8570"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49718, 33.50499]}, "properties": {"업체명": "제주렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 용문로 8", "자동차총보유대수": 1162, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-735-3412"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50303, 33.50365]}, "properties": {"업체명": "㈜제주오케이렌터카", "소재지도로명주소": "제주특별자치도 제주시 용문로 64", "자동차총보유대수": 820, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-743-4000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50257, 33.50993]}, "properties": {"업체명": "㈜뉴제주렌터카", "소재지도로명주소": "제주특별자치도 제주시 용해로 80-7", "자동차총보유대수": 217, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-747-6869"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49742, 33.5]}, "properties": {"업체명": "㈜굿모닝렌트카", "소재지도로명주소": "제주특별자치도 제주시 월성로4길 74-22", "자동차총보유대수": 128, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-8003"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.45581, 33.49334]}, "properties": {"업체명": "(유)제주공항렌트카", "소재지도로명주소": "제주특별자치도 제주시 오광로 24", "자동차총보유대수": 368, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-4800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.46778, 33.4933]}, "properties": {"업체명": "메트로렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 억삼길 10", "자동차총보유대수": 113, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-6555"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.43071, 33.48516]}, "properties": {"업체명": "㈜한길렌터카", "소재지도로명주소": "제주특별자치도 제주시 우정로 88", "자동차총보유대수": 134, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-6161"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50045, 33.50325]}, "properties": {"업체명": "㈜대진렌트카", "소재지도로명주소": "제주특별자치도 제주시 공항로1길 38-1", "자동차총보유대수": 142, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-9501"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.46348, 33.50078]}, "properties": {"업체명": "㈜발리렌트카", "소재지도로명주소": "제주특별자치도 제주시 도리로 110", "자동차총보유대수": 114, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-743-3727"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47215, 33.49639]}, "properties": {"업체명": "㈜렌트파크", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 39", "자동차총보유대수": 100, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-1666"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50435, 33.51038]}, "properties": {"업체명": "㈜하나렌트카", "소재지도로명주소": "제주특별자치도 제주시 성화로1길 5", "자동차총보유대수": 294, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-9611"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50137, 33.50409]}, "properties": {"업체명": "㈜행운렌트카", "소재지도로명주소": "제주특별자치도 제주시 용문로 48", "자동차총보유대수": 113, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-9119"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50192, 33.48572]}, "properties": {"업체명": "㈜제주사랑렌트카", "소재지도로명주소": "제주특별자치도 제주시 연미길 103", "자동차총보유대수": 173, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-0091"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47086, 33.49579]}, "properties": {"업체명": "한라산렌트카㈜", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 27", "자동차총보유대수": 155, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-748-8222"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.5004, 33.50341]}, "properties": {"업체명": "㈜특별한렌트카", "소재지도로명주소": "제주특별자치도 제주시 공항로1길 38", "자동차총보유대수": 255, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-805-8005"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.44273, 33.48776]}, "properties": {"업체명": "㈜올레렌트카", "소재지도로명주소": "제주특별자치도 제주시 논세길 74", "자동차총보유대수": 191, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-743-7300"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.4977, 33.49853]}, "properties": {"업체명": "㈜제주드림렌트카", "소재지도로명주소": "제주특별자치도 제주시 월성로4길 76-2", "자동차총보유대수": 109, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-744-3939"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48699, 33.50325]}, "properties": {"업체명": "㈜제주여행렌트카", "소재지도로명주소": "제주특별자치도 제주시 다호북길 105", "자동차총보유대수": 119, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-711-6111"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.46486, 33.49393]}, "properties": {"업체명": "㈜제주e렌터카", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7662", "자동차총보유대수": 120, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-713-6000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48652, 33.49409]}, "properties": {"업체명": "㈜좋은", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7861", "자동차총보유대수": 220, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-748-1800"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.46547, 33.49482]}, "properties": {"업체명": "㈜KD", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7667", "자동차총보유대수": 293, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-0753"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.5056, 33.5071]}, "properties": {"업체명": "㈜제주평화렌트카", "소재지도로명주소": "제주특별자치도 제주시 용해로 119", "자동차총보유대수": 150, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-9944"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49602, 33.51778]}, "properties": {"업체명": "(유)제주현대렌트카", "소재지도로명주소": "제주특별자치도 제주시 어영길 30", "자동차총보유대수": 390, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-742-0087"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50558, 33.49017]}, "properties": {"업체명": "㈜쏘카", "소재지도로명주소": "제주특별자치도 제주시 연미길 42", "자동차총보유대수": 317, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "070-4700-0231"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.47832, 33.49943]}, "properties": {"업체명": "㈜썬렌트카", "소재지도로명주소": "제주특별자치도 제주시 오일장중길 115", "자동차총보유대수": 303, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-773-8000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.46008, 33.48963]}, "properties": {"업체명": "㈜스마트렌트카", "소재지도로명주소": "제주특별자치도 제주시 오도11길 19", "자동차총보유대수": 161, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-745-7272"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48273, 33.49631]}, "properties": {"업체명": "㈜무지개렌트카", "소재지도로명주소": "제주특별자치도 제주시 제성1길 30", "자동차총보유대수": 1048, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-746-3500"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50666, 33.49034]}, "properties": {"업체명": "㈜뉴대한렌트카", "소재지도로명주소": "제주특별자치도 제주시 연미길 35", "자동차총보유대수": 196, "평일운영시작시각": "07:45", "평일운영종료시각": "20:00", "전화번호": "064-712-7811"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.49399, 33.5032]}, "properties": {"업체명": "(주)레드캡투어 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 다호길 130", "자동차총보유대수": 0, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-2088-3158"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48652, 33.49409]}, "properties": {"업체명": "(주)레드캡투어 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7861", "자동차총보유대수": 620, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-2088-3158"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.50148, 33.50895]}, "properties": {"업체명": "롯데렌탈(주) 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 용해로 92", "자동차총보유대수": 2395, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-3404-9966"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.45663, 33.49481]}, "properties": {"업체명": "SK네트웍스(주)SK렌터카 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7582", "자동차총보유대수": 501, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "000-0000-0000"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.48952, 33.4924]}, "properties": {"업체명": "케이비캐피탈(주) 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 도령로 115", "자동차총보유대수": 15944, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-3475-3600"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.53018, 33.49227]}, "properties": {"업체명": "아주캐피탈(주) 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 연삼로 352", "자동차총보유대수": 21141, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "02-2017-5256"}}, {"type": "Feature", "geometry": {"type": "Point", "coordinates": [126.45651, 33.49576]}, "properties": {"업체명": "(주)해피네트웍스 제주 영업소", "소재지도로명주소": "제주특별자치도 제주시 일주서로 7581", "자동차총보유대수": 404, "평일운영시작시각": "09:00", "평일운영종료시각": "19:00", "전화번호": "000-0000-0000"}}]},
+            "buffer": 1,
+            "maxzoom": 14,
+            "generateId": true
+        });
+
+        map.addLayer({
+            "id": "label",
+            "source": "data",
+            "type": "symbol",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "layout": {
+                
+                "text-size" : generateInterpolateExpression('zoom', [[0, 8],[22, 3* 8]] ),
+                "text-offset": [0,-1]
+            },
+            "paint": {
+                "text-halo-color": "white",
+                "text-halo-width": generatePropertyExpression('interpolate', 'zoom', [[0,1], [18,5* 1]]),
+                "text-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    "#131516"]
+            }
+        }, "" )
+        
+        map.addLayer({
+            "id": "circle",
+            "source": "data",
+            "type": "circle",
+            "maxzoom": 24,
+            "minzoom": 0,
+            "paint": {
+                
+                    "circle-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", "grey"],
+                
+                "circle-radius" : generatePropertyExpression('interpolate', 'zoom', [[0,3.5], [22,10 * 3.5]]),
+                "circle-stroke-color": ["case",
+                    ["boolean", ["feature-state", "hover"], false], 
+                    "black", 
+                    "grey"],
+                "circle-stroke-width": generatePropertyExpression('interpolate', 'zoom', [[0,0.1], [18,5* 0.1]]),
+                "circle-opacity" : 1,
+                "circle-stroke-opacity" : 1
+            }
+        }, "label");
+        
+        
+
+        // Popups
+        
+            var popupAction = 'mousemove',
+                popupSettings =  {
+                    closeButton: false,
+                    closeOnClick: false
+                };
+        
+
+        // Create a popup
+        var popup = new mapboxgl.Popup(popupSettings);
+
+        
+
+        var hoveredStateId = 0;
+        
+        // Show the popup on mouseover
+        map.on(popupAction, function(e) {
+            
+            var features = map.queryRenderedFeatures(e.point, {layers: ['circle', 'label'] });
+
+            if (features.length > 0) {
+                map.getCanvas().style.cursor = 'pointer';
+                var f = features[0];
+                newHoveredStateId = f.id;
+                if (newHoveredStateId != hoveredStateId) {
+                    map.removeFeatureState({source: 'data', id: hoveredStateId});
+                    hoveredStateId = newHoveredStateId;
+                }
+                map.setFeatureState({source: 'data', id: hoveredStateId}, { hover: true});
+                let popup_html = '<div><li><b>Location</b>: ' + f.geometry.coordinates[0].toPrecision(6) + 
+                    ', ' + f.geometry.coordinates[1].toPrecision(6) + '</li>';
+
+                for (key in f.properties) {
+                    popup_html += '<li><b> ' + key + '</b>: ' + f.properties[key] + ' </li>'
+                }
+
+                popup_html += '</div>'
+                popup.setLngLat(e.lngLat)
+                    .setHTML(popup_html)
+                    .addTo(map);
+            }
+            else {
+                map.getCanvas().style.cursor = '';
+                popup.remove();
+                map.removeFeatureState({source: 'data', id: hoveredStateId});
+            }
+        });
+
+        
+        
+        // Fly to on click
+        map.on('click', 'circle', function(e) {
+            map.easeTo({
+                center: e.features[0].geometry.coordinates
+            });
+        });
+    });
+
+
+
+</script>
+
+<!-- add capability to export map or legend to image file -->
+
+
+</body>
+</html>
